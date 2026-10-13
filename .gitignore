@@ -1,0 +1,25 @@
+# Artefactos generados (no versionar)
+__pycache__/
+*.pyc
+*.pyo
+
+# Estado persistente de la caché semántica
+.vos_checkpoint.json
+.vos_modelo.pkl
+vectorw_state.json
+.verificacion_estado.json
+
+# Enlaces de desarrollo (los crea install.ps1)
+node_modules/
+dist/
+
+# Go / Rust
+implementaciones/go/vectorw.test
+implementaciones/rust/target/
+implementaciones/rust/Cargo.lock
+
+# Editores y sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

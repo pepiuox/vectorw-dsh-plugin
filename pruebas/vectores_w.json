@@ -1,0 +1,899 @@
+{
+  "version_implementacion": "1.1.0",
+  "autor_nucleo_original": "Jose Ricardo Mantilla Mantilla (PePiuoX)",
+  "config": {
+    "lado_cubo": 1024.0,
+    "n_espacios": 8,
+    "longitud_diagonal": 1773.62002695053,
+    "normalizador": 1773.62002695053,
+    "umbral_similitud": 0.15
+  },
+  "geometria": {
+    "bases": [
+      0.0,
+      2.732050807569,
+      2.732050807569,
+      2.732050807569
+    ],
+    "signos": [
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        -1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        -1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        -1.0
+      ]
+    ]
+  },
+  "tokenizacion": {
+    "optimizar consultas vectoriales con octree": [
+      "optimizar",
+      "consult",
+      "vectorial",
+      "octree"
+    ],
+    "optimizar consultas vectoriales con octree y podado espacial": [
+      "optimizar",
+      "consult",
+      "vectorial",
+      "octree",
+      "podado",
+      "espacial"
+    ],
+    "octree poda espacial para consultas vectoriales optimizar": [
+      "octree",
+      "poda",
+      "espacial",
+      "consult",
+      "vectorial",
+      "optimizar"
+    ],
+    "como funciona la cache LRU con TTL y frecuencia": [
+      "funciona",
+      "cache",
+      "lru",
+      "ttl",
+      "frecuencia"
+    ],
+    "como funciona la cache LRU con TTL y frecuencias": [
+      "funciona",
+      "cache",
+      "lru",
+      "ttl",
+      "frecuenci"
+    ],
+    "explicame la cache LRU con TTL y frecuencia": [
+      "explicame",
+      "cache",
+      "lru",
+      "ttl",
+      "frecuencia"
+    ],
+    "desplegar el plugin en linux con systemd": [
+      "desplegar",
+      "plugin",
+      "linux",
+      "systemd"
+    ],
+    "recetas de cocina vegana con tofu": [
+      "recet",
+      "cocina",
+      "vegana",
+      "tofu"
+    ],
+    "la diagonal W proyecta el punto en el cubo": [
+      "diagonal",
+      "proyecta",
+      "punto",
+      "cubo"
+    ],
+    "prediccion markov de orden superior": [
+      "predic",
+      "markov",
+      "orden",
+      "superior"
+    ],
+    "cachés y caches": [
+      "cach"
+    ],
+    "PODA, podado y podando": [
+      "poda",
+      "podado",
+      "podando"
+    ],
+    "áéíóú ñ": [
+      "aeiou"
+    ],
+    "": [],
+    "a de la el": []
+  },
+  "puntos": [
+    {
+      "punto": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "componentes": [
+        0.0,
+        1615.206675650177,
+        1615.206675650177,
+        1615.206675650177
+      ],
+      "firma": [
+        0.0,
+        0.910683602523,
+        0.910683602523,
+        0.910683602523
+      ],
+      "espacios": [
+        0,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "punto": [
+        1024.0,
+        0.0,
+        0.0
+      ],
+      "componentes": [
+        591.206675650177,
+        1024.0,
+        2206.413351300353,
+        2206.413351300353
+      ],
+      "firma": [
+        0.333333333333,
+        0.57735026919,
+        1.244016935856,
+        1.244016935856
+      ],
+      "espacios": [
+        2,
+        4,
+        7,
+        7
+      ]
+    },
+    {
+      "punto": [
+        0.0,
+        1024.0,
+        0.0
+      ],
+      "componentes": [
+        591.206675650177,
+        2206.413351300353,
+        1024.0,
+        2206.413351300353
+      ],
+      "firma": [
+        0.333333333333,
+        1.244016935856,
+        0.57735026919,
+        1.244016935856
+      ],
+      "espacios": [
+        2,
+        7,
+        4,
+        7
+      ]
+    },
+    {
+      "punto": [
+        0.0,
+        0.0,
+        1024.0
+      ],
+      "componentes": [
+        591.206675650177,
+        2206.413351300353,
+        2206.413351300353,
+        1024.0
+      ],
+      "firma": [
+        0.333333333333,
+        1.244016935856,
+        1.244016935856,
+        0.57735026919
+      ],
+      "espacios": [
+        2,
+        7,
+        7,
+        4
+      ]
+    },
+    {
+      "punto": [
+        1024.0,
+        1024.0,
+        1024.0
+      ],
+      "componentes": [
+        1773.62002695053,
+        2206.413351300353,
+        2206.413351300353,
+        2206.413351300353
+      ],
+      "firma": [
+        1.0,
+        1.244016935856,
+        1.244016935856,
+        1.244016935856
+      ],
+      "espacios": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "punto": [
+        512.0,
+        512.0,
+        512.0
+      ],
+      "componentes": [
+        886.810013475265,
+        1910.810013475265,
+        1910.810013475265,
+        1910.810013475265
+      ],
+      "firma": [
+        0.5,
+        1.07735026919,
+        1.07735026919,
+        1.07735026919
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "punto": [
+        123.0,
+        456.0,
+        789.0
+      ],
+      "componentes": [
+        789.815168251408,
+        2262.993677680937,
+        1878.478398400646,
+        1493.963119120355
+      ],
+      "firma": [
+        0.4453125,
+        1.275917977523,
+        1.059121102523,
+        0.842324227523
+      ],
+      "espacios": [
+        3,
+        7,
+        7,
+        6
+      ]
+    },
+    {
+      "punto": [
+        999.0,
+        1.0,
+        512.0
+      ],
+      "componentes": [
+        872.953607014714,
+        1334.614444824019,
+        2487.005582126511,
+        1896.953607014714
+      ],
+      "firma": [
+        0.4921875,
+        0.752480477523,
+        1.402220060856,
+        1.06953776919
+      ],
+      "espacios": [
+        3,
+        6,
+        7,
+        7
+      ]
+    },
+    {
+      "punto": [
+        102.4,
+        921.6,
+        337.92
+      ],
+      "componentes": [
+        786.304878614735,
+        2283.270219134877,
+        1337.339538094594,
+        2011.315148335795
+      ],
+      "firma": [
+        0.443333333333,
+        1.28735026919,
+        0.754016935856,
+        1.134016935856
+      ],
+      "espacios": [
+        3,
+        7,
+        6,
+        7
+      ]
+    }
+  ],
+  "textos": [
+    {
+      "texto": "optimizar consultas vectoriales con octree",
+      "tokens": [
+        "optimizar",
+        "consult",
+        "vectorial",
+        "octree"
+      ],
+      "coords": [
+        767.75,
+        692.25,
+        611.5
+      ],
+      "componentes": [
+        1195.98108262631,
+        1924.666419935816,
+        2011.84631058345,
+        2105.088379057574
+      ],
+      "firma": [
+        0.67431640625,
+        1.08516276919,
+        1.134316415023,
+        1.186888029606
+      ],
+      "espacios": [
+        5,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "optimizar consultas vectoriales con octree y podado espacial",
+      "tokens": [
+        "optimizar",
+        "consult",
+        "vectorial",
+        "octree",
+        "podado",
+        "espacial"
+      ],
+      "coords": [
+        730.333333333333,
+        616.333333333333,
+        432.5
+      ],
+      "componentes": [
+        1027.202353933209,
+        1799.092736387073,
+        1930.728597762307,
+        2143.00104673436
+      ],
+      "firma": [
+        0.579155815972,
+        1.01436198794,
+        1.08858073794,
+        1.208263897662
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "octree poda espacial para consultas vectoriales optimizar",
+      "tokens": [
+        "octree",
+        "poda",
+        "espacial",
+        "consult",
+        "vectorial",
+        "optimizar"
+      ],
+      "coords": [
+        659.166666666667,
+        602.166666666667,
+        430.5
+      ],
+      "componentes": [
+        976.780430423982,
+        1830.847001192502,
+        1896.664931880119,
+        2094.888524301891
+      ],
+      "firma": [
+        0.550726996528,
+        1.032265633773,
+        1.069375008773,
+        1.181137161551
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "como funciona la cache LRU con TTL y frecuencia",
+      "tokens": [
+        "funciona",
+        "cache",
+        "lru",
+        "ttl",
+        "frecuencia"
+      ],
+      "coords": [
+        671.8,
+        446.6,
+        688.0
+      ],
+      "componentes": [
+        1042.92552626414,
+        1882.404380231136,
+        2142.442941474143,
+        1863.698231509392
+      ],
+      "firma": [
+        0.588020833333,
+        1.06133464419,
+        1.207949227523,
+        1.05078776919
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "como funciona la cache LRU con TTL y frecuencias",
+      "tokens": [
+        "funciona",
+        "cache",
+        "lru",
+        "ttl",
+        "frecuenci"
+      ],
+      "coords": [
+        571.4,
+        290.0,
+        554.4
+      ],
+      "componentes": [
+        817.412511118672,
+        1772.823299138945,
+        2097.756030638866,
+        1792.453208291392
+      ],
+      "firma": [
+        0.460872395833,
+        0.999550790023,
+        1.182753915023,
+        1.010618498356
+      ],
+      "espacios": [
+        3,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "explicame la cache LRU con TTL y frecuencia",
+      "tokens": [
+        "explicame",
+        "cache",
+        "lru",
+        "ttl",
+        "frecuencia"
+      ],
+      "coords": [
+        714.0,
+        440.2,
+        720.0
+      ],
+      "componentes": [
+        1082.069874515197,
+        1872.820365762588,
+        2188.977373170827,
+        1865.892162532313
+      ],
+      "firma": [
+        0.610091145833,
+        1.055930998356,
+        1.23418620669,
+        1.052024748356
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "desplegar el plugin en linux con systemd",
+      "tokens": [
+        "desplegar",
+        "plugin",
+        "linux",
+        "systemd"
+      ],
+      "coords": [
+        348.0,
+        669.5,
+        620.0
+      ],
+      "componentes": [
+        945.411065798012,
+        2158.78195409221,
+        1787.54573100328,
+        1844.703407653053
+      ],
+      "firma": [
+        0.533040364583,
+        1.217161467106,
+        1.007851571273,
+        1.040078133773
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "recetas de cocina vegana con tofu",
+      "tokens": [
+        "recet",
+        "cocina",
+        "vegana",
+        "tofu"
+      ],
+      "coords": [
+        442.5,
+        470.25,
+        313.25
+      ],
+      "componentes": [
+        707.831430026481,
+        1812.083117443839,
+        1780.040177503815,
+        1961.328162029357
+      ],
+      "firma": [
+        0.399088541667,
+        1.02168620669,
+        1.00361980044,
+        1.105833342106
+      ],
+      "espacios": [
+        3,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "la diagonal W proyecta el punto en el cubo",
+      "tokens": [
+        "diagonal",
+        "proyecta",
+        "punto",
+        "cubo"
+      ],
+      "coords": [
+        423.0,
+        550.25,
+        393.5
+      ],
+      "componentes": [
+        789.093480414921,
+        1915.861828330674,
+        1768.926184821915,
+        1949.925494212862
+      ],
+      "firma": [
+        0.444905598958,
+        1.080198576481,
+        0.997353524398,
+        1.099404305648
+      ],
+      "espacios": [
+        3,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "prediccion markov de orden superior",
+      "tokens": [
+        "predic",
+        "markov",
+        "orden",
+        "superior"
+      ],
+      "coords": [
+        440.75,
+        534.5,
+        852.75
+      ],
+      "componentes": [
+        1055.396292078636,
+        2161.668705438158,
+        2053.415529965103,
+        1685.932083625906
+      ],
+      "firma": [
+        0.595052083333,
+        1.218789071273,
+        1.157753915023,
+        0.950559904606
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "cachés y caches",
+      "tokens": [
+        "cach"
+      ],
+      "coords": [
+        759.0,
+        509.0,
+        277.0
+      ],
+      "componentes": [
+        892.006165897972,
+        1630.795132918297,
+        1919.47026751311,
+        2187.360792417096
+      ],
+      "firma": [
+        0.5029296875,
+        0.919472665023,
+        1.08223308169,
+        1.233274748356
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "PODA, podado y podando",
+      "tokens": [
+        "poda",
+        "podado",
+        "podando"
+      ],
+      "coords": [
+        714.333333333333,
+        757.333333333333,
+        139.333333333333
+      ],
+      "componentes": [
+        930.111283664487,
+        1720.476874732419,
+        1670.824751582111,
+        2384.429684300488
+      ],
+      "firma": [
+        0.5244140625,
+        0.970036901134,
+        0.942042109467,
+        1.344385859467
+      ],
+      "espacios": [
+        4,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "áéíóú ñ",
+      "tokens": [
+        "aeiou"
+      ],
+      "coords": [
+        885.0,
+        626.0,
+        707.0
+      ],
+      "componentes": [
+        1280.56289706259,
+        1873.859596247129,
+        2172.927035687355,
+        2079.396292078636
+      ],
+      "firma": [
+        0.722005208333,
+        1.056516935856,
+        1.225136727523,
+        1.172402352523
+      ],
+      "espacios": [
+        5,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "texto": "",
+      "tokens": [],
+      "coords": [
+        66.0,
+        20.0,
+        200.0
+      ],
+      "componentes": [
+        165.122176988233,
+        1704.118617105379,
+        1757.234841870825,
+        1549.388744962559
+      ],
+      "firma": [
+        0.093098958333,
+        0.960813810856,
+        0.990761727523,
+        0.873574227523
+      ],
+      "espacios": [
+        0,
+        7,
+        7,
+        6
+      ]
+    },
+    {
+      "texto": "a de la el",
+      "tokens": [],
+      "coords": [
+        295.0,
+        349.0,
+        827.0
+      ],
+      "componentes": [
+        849.28224597794,
+        2123.852262806237,
+        2061.498433733757,
+        1509.551576388475
+      ],
+      "firma": [
+        0.478841145833,
+        1.19746745669,
+        1.16231120669,
+        0.851113290023
+      ],
+      "espacios": [
+        3,
+        7,
+        7,
+        6
+      ]
+    }
+  ],
+  "distancias": [
+    {
+      "a": "optimizar consultas vectoriales con octree",
+      "b": "optimizar consultas vectoriales con octree y podado espacial",
+      "distancia": 0.100977009664,
+      "solapamiento": 0.666666666667,
+      "acierto": true
+    },
+    {
+      "a": "optimizar consultas vectoriales con octree",
+      "b": "octree poda espacial para consultas vectoriales optimizar",
+      "distancia": 0.117036679273,
+      "solapamiento": 0.666666666667,
+      "acierto": true
+    },
+    {
+      "a": "como funciona la cache LRU con TTL y frecuencia",
+      "b": "como funciona la cache LRU con TTL y frecuencias",
+      "distancia": 0.116184163757,
+      "solapamiento": 0.666666666667,
+      "acierto": true
+    },
+    {
+      "a": "optimizar consultas vectoriales con octree",
+      "b": "desplegar el plugin en linux con systemd",
+      "distancia": 0.311903580864,
+      "solapamiento": 0.0,
+      "acierto": false
+    },
+    {
+      "a": "la diagonal W proyecta el punto en el cubo",
+      "b": "prediccion markov de orden superior",
+      "distancia": 0.350022377423,
+      "solapamiento": 0.0,
+      "acierto": false
+    }
+  ],
+  "cache": [
+    {
+      "consulta": "optimizar consultas vectoriales con octree",
+      "hit": true,
+      "kind": "exacto",
+      "query": "optimizar consultas vectoriales con octree",
+      "tokens_ahorrados": 4200,
+      "distancia": 0.0,
+      "solapamiento": 1.0
+    },
+    {
+      "consulta": "optimizar consultas vectoriales con octree y podado espacial",
+      "hit": true,
+      "kind": "semantico",
+      "query": "optimizar consultas vectoriales con octree",
+      "tokens_ahorrados": 4200,
+      "distancia": 0.100977009664,
+      "solapamiento": 0.666666666667
+    },
+    {
+      "consulta": "desplegar el plugin en linux con systemd",
+      "hit": false,
+      "kind": "miss",
+      "query": "desplegar el plugin en linux con systemd",
+      "tokens_ahorrados": 0,
+      "distancia": null,
+      "solapamiento": null
+    }
+  ],
+  "cache_estadisticas": {
+    "entradas": 2,
+    "max_entradas": 2000,
+    "umbral_similitud": 0.15,
+    "hits_exactos": 1,
+    "hits_semanticos": 1,
+    "fallos": 1,
+    "hit_rate": 0.666666666667,
+    "tokens_ahorrados": 8400,
+    "tokens_almacenados": 4260
+  }
+}

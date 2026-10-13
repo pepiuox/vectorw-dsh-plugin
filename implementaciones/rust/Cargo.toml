@@ -1,0 +1,44 @@
+# VectorW — nucleo original de Jose Ricardo Mantilla Mantilla (PePiuoX), https://github.com/PePiuoX
+#
+# Crate del port de referencia en Rust de la firma W 4D y la cache semantica.
+#
+# ESTADO: NO COMPILADO NI VERIFICADO. En la maquina donde se genero este crate
+# no estan instalados `rustc` ni `cargo`, de modo que `cargo build`, `cargo
+# test`, `cargo fmt` y `cargo clippy` nunca se han ejecutado sobre el. Para
+# verificarlo:
+#
+#     cd implementaciones/rust && cargo test
+#
+# DEPENDENCIAS: ninguna, a proposito. SHA-256 y la descomposicion NFD de los
+# diacriticos latinos estan escritos a mano en src/lib.rs.
+
+[package]
+name = "vectorw"
+version = "1.1.0"
+edition = "2021"
+rust-version = "1.70"
+description = "Port de referencia de la firma W 4D y la cache semantica de VectorW (nucleo original de Jose Ricardo Mantilla Mantilla, PePiuoX)"
+license = "LAMC-1.0 OR LULA-1.1"
+repository = "https://github.com/PePiuoX"
+readme = "README.md"
+keywords = ["vectorw", "firma-w", "cache-semantica", "similitud"]
+categories = ["algorithms", "caching"]
+publish = false
+
+# El paquete es una biblioteca; las pruebas viven en el modulo #[cfg(test)] de
+# src/lib.rs y se ejecutan con `cargo test`. No hay binario.
+[lib]
+name = "vectorw"
+path = "src/lib.rs"
+
+# Sin dependencias de ejecucion: el crate es autocontenido (SHA-256 propio).
+[dependencies]
+
+# Dependencia de desarrollo PROPUESTA, descomentada solo si se quiere leer
+# pruebas/vectores_w.json completo desde las pruebas en lugar de incrustar un
+# subconjunto literal. Con ella se puede volcar el JSON a estructuras con
+# `serde_json::from_str` y recorrer las cinco secciones igual que hace la prueba
+# de Go (implementaciones/go/vectorw/vectorw_test.go).
+#
+# [dev-dependencies]
+# serde_json = "1"
