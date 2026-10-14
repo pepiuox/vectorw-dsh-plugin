@@ -88,17 +88,56 @@ if (-not (Test-Path (Join-Path $RutaCore 'vectorW_6.py'))) {
 # Desinstalacion
 # ---------------------------------------------------------------------------
 if ($Desinstalar) {
+    # La entrada vive dentro de un bloque `- insert:`, precedida de comentarios.
+    # Hay que quitar el bloque entero y SUS comentarios, no solo la linea del id:
+    # si no, quedaria un `- insert:` vacio o comentarios huerfanos.
     $lineas = (Leer-Texto $PatchPerfil) -split "`r?`n"
     $salida = New-Object System.Collections.Generic.List[string]
-    $omitir = $false
-    foreach ($linea in $lineas) {
-        if ($linea -match "^\s*-\s*id:\s*$([regex]::Escape($IdEntrada))\s*$") { $omitir = $true; continue }
-        if ($omitir) {
-            if ($linea -match '^\s*-\s') { $omitir = $false } else { continue }
+    $pendiente = New-Object System.Collections.Generic.List[string]  # comentarios en espera
+    $i = 0
+    while ($i -lt $lineas.Count) {
+        $linea = $lineas[$i]
+
+        # Los comentarios y las lineas vacias se retienen: solo se descartan si
+        # resulta que encabezan el bloque que vamos a eliminar.
+        if ($linea -match '^\s*#' -or $linea -match '^\s*$') {
+            $pendiente.Add($linea)
+            $i++
+            continue
         }
+
+        $esInsert = $linea -match '^\s*-\s*insert:\s*$'
+        $esNuestra = $false
+        $fin = $i
+
+        if ($esInsert) {
+            # El bloque llega hasta la primera linea con indentacion menor o igual
+            # a la del propio `- insert:`.
+            $fin = $i + 1
+            while ($fin -lt $lineas.Count -and
+                   ($lineas[$fin] -match '^\s*$' -or $lineas[$fin] -match '^\s{2,}')) {
+                $fin++
+            }
+            $bloque = $lineas[$i..($fin - 1)] -join "`n"
+            $esNuestra = $bloque -match "id:\s*$([regex]::Escape($IdEntrada))\b"
+        }
+
+        if ($esNuestra) {
+            # Se descartan los comentarios previos (son los nuestros) y el bloque.
+            $pendiente.Clear()
+            $i = $fin
+            continue
+        }
+
+        # No era nuestro: se vuelca lo retenido y la linea actual.
+        foreach ($p in $pendiente) { $salida.Add($p) }
+        $pendiente.Clear()
         $salida.Add($linea)
+        $i++
     }
-    Escribir-Texto $PatchPerfil ($salida -join "`n")
+    foreach ($p in $pendiente) { $salida.Add($p) }
+
+    Escribir-Texto $PatchPerfil (($salida -join "`n").TrimEnd() + "`n")
 
     if (Test-Path $Destino) {
         $item = Get-Item $Destino -Force
@@ -169,6 +208,12 @@ if ($Copiar -or -not $enlazado) {
 # ---------------------------------------------------------------------------
 # 2. Entrada en cordis.patch.yml del perfil
 # ---------------------------------------------------------------------------
+#
+# IMPORTANTE: el patch del usuario solo puede MODIFICAR filas que ya existen en
+# las capas de los bundles. Una entrada `- id: X` suelta se interpreta como
+# «parchea la fila X» y, si esa fila no existe, el loader avisa
+# ("patch: entry X not found") y la DESCARTA en silencio: el plugin no se
+# cargaria. Para AÑADIR filas nuevas hay que envolverlas en `insert:`.
 $patch = Leer-Texto $PatchPerfil
 if ($patch -match "id:\s*$([regex]::Escape($IdEntrada))\b") {
     Write-Host "La entrada '$IdEntrada' ya existe en cordis.patch.yml" -ForegroundColor DarkGray
@@ -177,17 +222,50 @@ if ($patch -match "id:\s*$([regex]::Escape($IdEntrada))\b") {
         '',
         '# VectorW (vOS v6.0): cache semantica de firma W 4D + predictor de consultas.',
         '# Nucleo de Jose Ricardo Mantilla Mantilla (PePiuoX) - https://github.com/PePiuoX',
-        "- id: $IdEntrada",
-        "  name: `"$NombrePlugin`"",
-        '  config:',
-        "    rutaCore: `"$($RutaCore -replace '\\', '/')`"",
-        '    umbralSimilitud: 0.15',
-        '    maxEntradas: 2000',
-        '    ordenMarkov: 2'
+        '# Debe ir bajo "insert:" para ANADIR la fila; sin el, el loader la trataria',
+        '# como parche de una fila inexistente y la descartaria sin cargar el plugin.',
+        '- insert:',
+        "    - id: $IdEntrada",
+        "      name: `"$NombrePlugin`"",
+        '      config:',
+        "        rutaCore: `"$($RutaCore -replace '\\', '/')`"",
+        '        umbralSimilitud: 0.15',
+        '        maxEntradas: 2000',
+        '        ordenMarkov: 2'
     ) -join "`n"
     $separador = if ($patch.EndsWith("`n") -or $patch.Length -eq 0) { '' } else { "`n" }
     Escribir-Texto $PatchPerfil ($patch + $separador + $entrada + "`n")
-    Write-Host "Entrada '$IdEntrada' anadida a cordis.patch.yml" -ForegroundColor Green
+    Write-Host "Entrada '$IdEntrada' insertada en cordis.patch.yml" -ForegroundColor Green
+}
+
+# ---------------------------------------------------------------------------
+# 3. Verificar que el perfil compone la fila (no basta con escribirla)
+# ---------------------------------------------------------------------------
+$node = Join-Path $DshHome 'dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe'
+$dsh = Join-Path $DshHome 'profiles\node_modules\@deepseek-ai\dsh\lib\bin.js'
+if ((Test-Path $node) -and (Test-Path $dsh)) {
+    Write-Host ''
+    Write-Host 'Comprobando que el perfil compone la entrada...' -ForegroundColor Cyan
+    # `--dump-config` avisa por stderr de otras entradas ausentes del perfil
+    # (ajenas a este plugin) y sale con codigo distinto de cero. Por eso el
+    # aviso se captura aparte y no se deja que aborte el instalador.
+    $anterior = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $compuesto = (& $node $dsh --profile $Perfil --dump-config 2>&1 | Out-String)
+    $ErrorActionPreference = $anterior
+
+    $patronAusente = 'entry\s+"' + [regex]::Escape($IdEntrada) + '"\s+not found'
+    if ($compuesto -match $patronAusente) {
+        Write-Host "  FALLO: el loader no encuentra la fila '$IdEntrada'." -ForegroundColor Red
+        Write-Host '         Revisa que la entrada este bajo "insert:" en cordis.patch.yml.' -ForegroundColor Red
+    } elseif ($compuesto -match ("id:\s*" + [regex]::Escape($IdEntrada))) {
+        Write-Host "  OK: '$IdEntrada' aparece en el arbol compuesto del perfil." -ForegroundColor Green
+    } else {
+        Write-Host "  AVISO: no se pudo confirmar la entrada en el arbol compuesto." -ForegroundColor Yellow
+        Write-Host "         Ejecuta: dsh --profile $Perfil --dump-config  (y busca '$IdEntrada')." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host '  (no se encontro el runtime de DSH; no se pudo comprobar el arbol)' -ForegroundColor Yellow
 }
 
 Write-Host ''

@@ -169,7 +169,14 @@ caché, el octree y el aprendizaje de Markov persisten entre llamadas.
 
 ## Verificación
 
-Todo lo que se afirma aquí es reproducible. Desde la raíz del plugin:
+Todo lo que se afirma aquí es reproducible. Un solo comando comprueba la cadena
+completa:
+
+```bash
+python pruebas/verificar_todo.py
+```
+
+Y por separado, cada pieza:
 
 ```bash
 # 1. ¿La referencia reproduce el núcleo original de VectorW?     → 47/47
@@ -181,20 +188,16 @@ node implementaciones/typescript/prueba.ts
 # 3. ¿El port JavaScript coincide con la referencia?             → 147/147
 node implementaciones/javascript/prueba.mjs
 
-# 4. Regenerar el corpus tras cambiar el algoritmo
+# 4. ¿El plugin se monta y sus herramientas funcionan?           → 31/31
+#    (ejecutar desde el directorio del perfil de DSH)
+cd "$DSH_HOME/profiles"
+node /ruta/al/plugin/pruebas/verificar_montaje.mjs
+
+# 5. Regenerar el corpus tras cambiar el algoritmo
 python pruebas/generar_vectores.py
 
-# 5. Calibrar el umbral con datos propios
+# 6. Calibrar el umbral con datos propios
 python pruebas/calibrar_distancia.py
-```
-
-Las pruebas que cargan el plugin **instalado** deben ejecutarse desde el
-directorio del perfil de DSH, que es donde vive `node_modules`:
-
-```bash
-cd "$DSH_HOME/profiles"
-node /ruta/al/plugin/pruebas/verificar.mjs
-node /ruta/al/plugin/pruebas/verificar_ahorro.mjs
 ```
 
 | Prueba | Comprueba | Resultado |
@@ -202,9 +205,39 @@ node /ruta/al/plugin/pruebas/verificar_ahorro.mjs
 | `verificar_equivalencia.py` | La firma de la referencia coincide con `vectorW_6.py` en 9 puntos × 2 tamaños de cubo | 47/47 |
 | `typescript/prueba.ts` | Tokenización, centroides, firmas, espacios, distancias y decisiones de caché | 140/140 |
 | `javascript/prueba.mjs` | Lo anterior + SHA-256 propio frente a `node:crypto` | 147/147 |
-| `verificar.mjs` | El plugin carga, registra 6 herramientas y todas ejecutan | OK |
+| `verificar_montaje.mjs` | Que la fila está bajo `insert:`, que el loader resuelve el módulo, que se monta sobre un `Context` real de Cordis, que registra las 6 herramientas y que todas ejecutan | 31/31 |
+| `verificar.mjs` | Carga del plugin y ejecución de las 6 herramientas | OK |
 | `verificar_ahorro.mjs` | Acierto exacto, acierto semántico y fallo | OK |
 | `calibrar_distancia.py` | Margen del umbral entre reformulaciones y temas distintos | informativo |
+
+`verificar_montaje.mjs` reproduce el arranque del loader: resuelve el
+especificador desde el directorio del perfil, importa el módulo (con lo que se
+resuelven sus dependencias), crea un `Context` real de Cordis, registra el
+servicio `tools` y aplica el plugin. Si eso pasa, lo único que falta en el
+arranque real es que el loader lea la fila del perfil, y eso lo comprueba el
+propio instalador con `--dump-config`.
+
+Acepta `--solo-montaje` para omitir la ejecución de las herramientas: es lo que
+usa la pasada maestra, porque bajo el sandbox de Windows un proceso anidado no
+puede abrir tuberías y el arranque del puente Python fallaría con `EPERM`
+aunque el montaje fuese correcto.
+
+### Comprobar la activación tras reiniciar
+
+El montaje se verifica en frío, pero la activación real en tu agente solo se
+puede confirmar con DSH arrancado:
+
+1. **Reinicia DeepSeek Harness** (el loader monta los plugins al arrancar).
+2. Pregúntale al agente por `vector_stats`. Si la conoce, está activa.
+3. Pídele que la ejecute. Debe devolver el modo, los aciertos y los parches
+   activos.
+
+Sin reiniciar, puedes comprobar que el perfil compondrá la fila:
+
+```powershell
+node "$env:DSH_HOME\profiles\node_modules\@deepseek-ai\dsh\lib\bin.js" `
+  --profile desktop --dump-config | Select-String "vectorw-memory"
+```
 
 ---
 
