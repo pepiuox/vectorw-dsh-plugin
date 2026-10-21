@@ -7,9 +7,10 @@
 > **LAMC v1.0 / LULA v1.1**. Ver [`LICENSE.md`](LICENSE.md) y
 > [`vendor/NOTICE.md`](vendor/NOTICE.md).
 
-Convierte VectorW en una **caché semántica de firma W 4D** y un **predictor de
-consultas** disponibles como herramientas del agente, para que el modelo no
-vuelva a buscar lo que ya encontró y gaste menos tokens.
+Convierte VectorW en una **caché semántica de firma W 4D**, un **predictor de
+consultas** y una **memoria de procesos y lecciones en SQLite** disponibles como
+herramientas del agente, para que el modelo no vuelva a buscar lo que ya
+encontró, no repita una tarea ya resuelta y gaste menos tokens.
 
 El repositorio es **autocontenido**: incluye el núcleo de VectorW en
 [`vendor/`](vendor/) y una implementación de referencia propia en varios
@@ -48,10 +49,13 @@ HIT (coincidencia semántica, distancia W 0.1010, solapamiento 67%)
 
 ```
 vectorw-dsh-plugin/
-├── lib/index.js            Plugin de DSH: 6 herramientas + proceso puente
-├── bridge_vos.py           Puente JSON: caché semántica y métricas de ahorro
+├── lib/index.js            Plugin de DSH: 9 herramientas + proceso puente
+├── bridge_vos.py           Puente JSON: caché semántica, memoria y métricas
+├── memoria_vectorw.py      Memoria SQLite: procesos, lecciones, recursos, eventos
 ├── package.json
-├── install.ps1             Instalador en el perfil de DSH
+├── cordis.patch.yml        Patch del bundle: declara la fila vectorw-memory
+├── verificar-plugin.ps1    Diagnóstico de instalación y compatibilidad
+├── install.ps1             Obsoleto a propósito: solo avisa del camino correcto
 ├── LICENSE.md              Atribución y licencia
 ├── vendor/                 Núcleo VectorW original, SIN MODIFICAR
 │   ├── vectorW_py/         Archivos principales, con sus hashes
@@ -83,6 +87,9 @@ vectorw-dsh-plugin/
 | `vector_stats` | Aciertos, tokens ahorrados, entropía y predecibilidad por diagonal, patrones detectados. |
 | `vector_persist` | Guarda o restaura la caché en disco para conservar el ahorro entre sesiones. |
 | `vector_purge` | Vacía la caché cuando el contexto ya no es fiable. |
+| `vector_proceso_buscar` | Recupera de SQLite los procesos ya resueltos y las lecciones equivalentes, con sus pasos y su resultado, antes de repetir trabajo. |
+| `vector_proceso_guardar` | Guarda un proceso resuelto (pasos + resultado) y una lección opcional, para que otra sesión o agente lo reutilice. |
+| `vector_recurso_buscar` | Busca semánticamente en el catálogo indexado de skills, agentes, documentos y herramientas del preset. |
 
 ---
 
@@ -90,41 +97,68 @@ vectorw-dsh-plugin/
 
 Requisitos: DeepSeek Harness instalado (aporta Python 3.12 y Node 24).
 
+El plugin se instala como **bundle** con `plugin_manager` (acción
+`install_bundle`). Es el único camino soportado: DSH añade el paquete al
+`package.json` del perfil, ejecuta pnpm y aplica el patch del bundle como una
+capa de primera clase, dejando la fila **habilitada** y gestionable desde
+*Ajustes → Plugins*.
+
+Dentro de DeepSeek Harness, pide al agente:
+
+> instala el bundle de "C:\ruta\a\vectorw-dsh-plugin"
+
+Después, comprueba el estado con:
+
 ```powershell
-pwsh -File .\install.ps1
+pwsh -File .\verificar-plugin.ps1
 ```
 
-Opciones:
+### Por qué NO se instala a mano
 
-```powershell
-pwsh -File .\install.ps1 -RutaCore "D:\otra\ruta\vectorW_py"   # usar tu VectorW
-pwsh -File .\install.ps1 -Perfil desktop                        # perfil concreto
-pwsh -File .\install.ps1 -Copiar                                # sin enlaces
-pwsh -File .\install.ps1 -Desinstalar
+Escribir una fila en el `cordis.patch.yml` del perfil **no funciona** y fue el
+fallo histórico de este plugin. Deja dos problemas:
+
+1. **La fila aparece pero no se puede habilitar**: el loader la crea y DSH la
+   mantiene deshabilitada por el control de versión (ver más abajo).
+2. **Node no resuelve los imports** del plugin cuando vive fuera del perfil.
+
+`install.ps1` se conserva solo como aviso de obsolescencia; no escribe nada.
+
+### Requisito de versión (causa del bloqueo)
+
+DSH **rechaza activar** un plugin cuyas `peerDependencies` no admiten el
+runtime en ejecución. Este plugin declara:
+
+```json
+"peerDependencies": {
+  "@deepseek-ai/cordis": "^4.0.1",
+  "@deepseek-ai/dsh-tools": "^0.2.1-rc.2"
+}
 ```
 
-El instalador:
+Si actualizas DSH y el plugin aparece como *no habilitable*, actualiza ese
+rango. Fue exactamente la causa de que el plugin no se pudiera activar: el
+runtime era `0.2.1-rc.2` y el rango declaraba `^0.1.1-rc.2`.
 
-1. Enlaza este paquete en `<perfil>/node_modules/@deepseek-ai/dsh-plugin-vectorw`.
-2. Enlaza el `node_modules` del perfil junto al proyecto: Node resuelve los
-   enlaces a su ruta real y, sin ese enlace, el plugin no encontraría
-   `@deepseek-ai/schemastery`.
-3. Añade la entrada `vectorw-memory` al `cordis.patch.yml` **del perfil**.
+`verificar-plugin.ps1` reporta el runtime detectado y el rango declarado para
+que el desajuste salte a la vista.
 
-Después hay que **reiniciar DeepSeek Harness** para que el loader monte el
-plugin. Verifica con la herramienta `vector_stats`.
+### Configuración de la fila
 
-Si prefieres no usar el instalador, la entrada equivalente es:
+El patch del bundle ([`cordis.patch.yml`](cordis.patch.yml)) declara la fila:
 
 ```yaml
-- id: vectorw-memory
-  name: "@deepseek-ai/dsh-plugin-vectorw"
-  config:
-    rutaCore: ""          # vacío = usa el núcleo de vendor/
-    umbralSimilitud: 0.15
-    maxEntradas: 2000
-    ordenMarkov: 2
+- insert:
+    - id: vectorw-memory
+      name: '@deepseek-ai/dsh-plugin-vectorw'
+      config:
+        rutaCore: ''          # vacío = usa el núcleo de vendor/
+        umbralSimilitud: 0.15
+        maxEntradas: 2000
+        ordenMarkov: 2
 ```
+
+Cámbiala desde *Ajustes → Plugins* o en ese archivo del repo, no en el perfil.
 
 ---
 
@@ -140,9 +174,21 @@ Si prefieres no usar el instalador, la entrada equivalente es:
 | `ordenMarkov` | `2` | Orden de la cadena de Markov del predictor (1-4). |
 | `maxEntradas` | `2000` | Tamaño máximo de la caché. |
 | `ttlSegundos` | `0` | Caducidad por entrada (0 = sin caducidad). |
+| `minTokensComunes` | `2` | Tokens compartidos mínimos para aceptar un acierto semántico. Evita falsos positivos con una sola palabra en común. |
+| `minSolapamiento` | `0.0` | Jaccard mínimo adicional entre consulta y entrada. Súbelo (p. ej. `0.34`) para exigir más evidencia léxica. |
 | `invariantePermutaciones` | `true` | Compara firmas bajo las 24 permutaciones. |
 | `timeoutMs` | `30000` | Timeout por llamada al puente Python. |
 | `estadoInicial` | `''` | Estado en disco a restaurar al arrancar. |
+| `rutaMemoria` | `''` | Base SQLite de memoria. Vacío = `<paquete>/memoria/vectorw_memoria.db`. Compartirla entre perfil y presets reutiliza el aprendizaje entre sesiones. |
+| `rutaSkills` | `''` | Carpeta de skills del preset (`<ruta>/*/SKILL.md`) a indexar como recursos buscables. |
+| `rutaDocumentos` | `''` | Carpeta de documentos Markdown a indexar como recursos buscables. |
+| `umbralProcesos` | `0.22` | Distancia W máxima para aceptar un proceso ya resuelto como equivalente. |
+| `umbralRecursos` | `0.35` | Distancia W máxima para aceptar una skill/recurso como relevante. |
+| `presupuestoCaracteres` | `6000` | Caracteres máximos del valor que se guarda; por encima se guarda un resumen recortado. |
+| `maxTokensRespuesta` | `1500` | Tokens máximos que un acierto devuelve al contexto (≈4 car./token). |
+| `usarIndiceEspacios` | `true` | Añade el índice de celdas W al índice invertido de tokens. |
+| `reentrenarAlRestaurar` | `true` | Warm-start real: reinyecta las coordenadas restauradas en el predictor/octree. |
+| `persistirAlCerrar` | `false` | Persiste la caché al descargar el plugin. |
 
 `vector_stats` informa en `origen_nucleo` si se está usando el núcleo de
 `vendor` o el de `rutaCore`.
@@ -153,17 +199,46 @@ Si prefieres no usar el instalador, la entrada equivalente es:
 
 ```
 DSH (Node, Cordis)
-  └── lib/index.js          plugin: registra las 6 herramientas, gestiona el proceso
+  └── lib/index.js          plugin: registra las 9 herramientas, gestiona el proceso
         │  protocolo JSON por stdin/stdout (una línea = un mensaje)
         ▼
-      bridge_vos.py         puente: caché semántica + métricas de ahorro
-        │  import vectorW_6  (el núcleo, sin copiarlo ni modificarlo)
+      bridge_vos.py         puente: caché semántica + memoria + métricas de ahorro
+        │  ├─ import vectorW_6  (el núcleo, sin copiarlo ni modificarlo)
+        │  └─ import memoria_vectorw  (SQLite: procesos/lecciones/recursos/eventos)
         ▼
       vectorW_6.py          vOS v6.0: diagonales W, firma 4D, octree, Markov, Kalman
 ```
 
 El puente mantiene **un proceso Python vivo** durante la sesión, de modo que la
-caché, el octree y el aprendizaje de Markov persisten entre llamadas.
+caché, el octree y el aprendizaje de Markov persisten entre llamadas. La memoria
+SQLite, además, sobrevive al reinicio y puede compartirse entre el perfil global
+y los presets (WAL + `busy_timeout`: un escritor, varios lectores).
+
+### Memoria de procesos y autoaprendizaje (SQLite)
+
+`memoria_vectorw.py` guarda cuatro cosas:
+
+| Tabla | Qué contiene |
+|---|---|
+| `procesos` | tareas resueltas: intención, pasos, resultado presupuestado, referencia, estado (`candidato` → `validado` → `obsoleto`/`rechazado`), éxito/fallo y tokens ahorrados. |
+| `lecciones` | errores resueltos: `error_signature`, causa raíz, corrección, prevención y módulo. Se indexan también con la intención de la tarea, así que se recuperan buscando la tarea, no el error. |
+| `recursos` | catálogo indexado de skills, agentes, documentos y herramientas, con su ruta y un extracto. `rutaSkills` lo alimenta con las skills del preset. |
+| `eventos` | bitácora de aciertos/fallos usada para `hit_rate` y tokens ahorrados. |
+
+Reglas de diseño:
+
+- **Deduplicación**: `huella` = raíces de tokens ordenadas + `UNIQUE`, así que
+  guardar dos veces la misma tarea actualiza en vez de duplicar.
+- **Presupuesto**: el resultado se recorta a `presupuestoCaracteres` al guardar y
+  la respuesta a `maxTokensRespuesta` al devolver; `truncado` avisa al agente.
+- **Redacción**: claves API, contraseñas, tokens y cabeceras `Authorization` se
+  sustituyen por `[REDACTADO]` antes de persistir.
+- **Índices**: prefilter SQL por tokens compartidos + índice invertido en memoria
+  para la caché; la puntuación fina la hace la geometría W 4D.
+- **Autoaprendizaje**: al guardar un proceso con `estado: validado` (o al
+  actualizarlo varias veces) queda disponible para cualquier agente; las
+  lecciones se recuperan junto a la tarea equivalente. La promoción a
+  `validado` exige evidencia del agente, nunca se inventa.
 
 ---
 
@@ -182,33 +257,88 @@ Y por separado, cada pieza:
 # 1. ¿La referencia reproduce el núcleo original de VectorW?     → 47/47
 python pruebas/verificar_equivalencia.py
 
-# 2. ¿El port TypeScript coincide con la referencia?             → 140/140
+# 2. ¿La memoria SQLite, las lecciones y el presupuesto funcionan? → 45/45
+python pruebas/verificar_memoria.py
+
+# 3. ¿El port TypeScript coincide con la referencia?             → 140/140
 node implementaciones/typescript/prueba.ts
 
-# 3. ¿El port JavaScript coincide con la referencia?             → 147/147
+# 4. ¿El port JavaScript coincide con la referencia?             → 147/147
 node implementaciones/javascript/prueba.mjs
 
-# 4. ¿El plugin se monta y sus herramientas funcionan?           → 31/31
+# 5. ¿El plugin se monta y sus 9 herramientas funcionan?         → OK
 #    (ejecutar desde el directorio del perfil de DSH)
 cd "$DSH_HOME/profiles"
 node /ruta/al/plugin/pruebas/verificar_montaje.mjs
 
-# 5. Regenerar el corpus tras cambiar el algoritmo
+# 6. Regenerar el corpus tras cambiar el algoritmo
 python pruebas/generar_vectores.py
 
-# 6. Calibrar el umbral con datos propios
+# 7. Calibrar el umbral con datos propios
 python pruebas/calibrar_distancia.py
 ```
 
 | Prueba | Comprueba | Resultado |
 |---|---|---|
 | `verificar_equivalencia.py` | La firma de la referencia coincide con `vectorW_6.py` en 9 puntos × 2 tamaños de cubo | 47/47 |
+| `verificar_memoria.py` | Esquema SQLite, recuperación semántica de procesos, lecciones, presupuesto de tokens, dedupe, gate de polaridad, catálogo de skills, índices, warm-start, redacción y purga | 45/45 |
 | `typescript/prueba.ts` | Tokenización, centroides, firmas, espacios, distancias y decisiones de caché | 140/140 |
 | `javascript/prueba.mjs` | Lo anterior + SHA-256 propio frente a `node:crypto` | 147/147 |
-| `verificar_montaje.mjs` | Que la fila está bajo `insert:`, que el loader resuelve el módulo, que se monta sobre un `Context` real de Cordis, que registra las 6 herramientas y que todas ejecutan | 31/31 |
-| `verificar.mjs` | Carga del plugin y ejecución de las 6 herramientas | OK |
+| `verificar_montaje.mjs` | Que el bundle declara la fila bajo `insert:`, que el loader resuelve el módulo, que se monta sobre un `Context` real de Cordis, que registra las 9 herramientas y que todas ejecutan | 42/42 |
+| `verificar.mjs` | Carga del plugin y ejecución de las herramientas | OK |
 | `verificar_ahorro.mjs` | Acierto exacto, acierto semántico y fallo | OK |
 | `calibrar_distancia.py` | Margen del umbral entre reformulaciones y temas distintos | informativo |
+
+### Defectos corregidos en la revisión de puesta en uso
+
+| Defecto | Síntoma | Corrección |
+|---|---|---|
+| `peerDependencies` congeladas en `^0.1.1-rc.2` | El plugin aparecía en el perfil pero DSH lo mantenía **deshabilitado** («incompatible con dsh 0.2.1-rc.2») | Rango alineado al runtime (`^0.2.1-rc.2`) y comprobación en `verificar-plugin.ps1` |
+| Instalación a mano en el perfil | Fila creada pero no habilitada; imports sin resolver | Empaquetado como **bundle** + `install_bundle` |
+| Geometría incoherente | La caché firmaba el centroide de tokens, pero el predictor se entrenaba con el hash del texto completo: aprendía en puntos que no eran los de la caché | Una única función de coordenadas compartida por firma, espacios y entrenamiento |
+| Claves por `time.time()` | El reloj de Windows avanza en saltos de ~15 ms, así que guardados seguidos repetían clave y se **sobrescribían**: `episodios` y `datos_en_octree` contaban menos de lo real | Contador monótono por entrada |
+| Métricas del núcleo siempre a cero | `vector_stats` mostraba octree y episodios vacíos porque el puente nunca escribía en ellos | El puente registra ahora el episodio y el nodo de octree |
+
+### Optimizaciones implementadas en 1.4.0 y pendientes
+
+La revisión de la documentación (`docs/`) dejó cinco hallazgos. Estado real:
+
+| # | Mejora | Estado en 1.4.0 |
+|---|---|---|
+| 1 | **Índice para la búsqueda** en vez de escaneo lineal: índice invertido por token (mismo recall, sin recorrer toda la caché) + índice de celdas W (`clasificar_en_espacios`, complemento geométrico) + índice exacto O(1) | ✅ implementado y medido en `verificar_memoria.py` |
+| 2 | **Presupuesto de tokens y resumen** por entrada: recorte al guardar (`presupuestoCaracteres`) y al devolver (`maxTokensRespuesta`), con marca `truncado` | ✅ implementado |
+| 3 | **Deduplicación por hash semántico** sin palabras vacías: huella de raíces ordenadas + `UNIQUE` en SQLite; actualiza en vez de duplicar | ✅ implementado |
+| 4 | **Gate de confianza por entropía** y alertas operativas en `vector_stats` (hit rate, latencia, profundidad de octree) | ⚠️ parcial: `vector_stats` ya informa hit rate, índices, presupuesto y memoria; la entropía se muestra del núcleo, pero no bloquea aciertos |
+| 5 | **Warm-start real**: restaurar reentrena el predictor/octree con las coordenadas guardadas y reconstruye los índices | ✅ implementado (`reentrenarAlRestaurar`) |
+
+Además, la memoria SQLite añade lo que el escaneo lineal no resolvía: reutilizar
+**procesos completos** (no solo valores) y **lecciones de error**, y enrutar una
+necesidad al **recurso** correcto (skill/documento/herramienta) del preset.
+
+### Límites medidos que conviene conocer
+
+- **La distancia W por sí sola no distingue.** Medido con
+  `pruebas/calibrar_distancia.py`: una consulta de tema distinto **sin
+  vocabulario común** da distancia `0.0913`, menor que la peor reformulación
+  válida (`0.1162`) y menor que el umbral (`0.15`). La seguridad la aporta el
+  filtro de solapamiento, no el umbral; por eso el filtro se aplica antes de
+  elegir la candidata.
+- **La negación es invisible para el tokenizador.** «no optimizar X» y
+  «optimizar X» comparten todos los tokens significativos (`no` es palabra
+  vacía). Un gate de polaridad (`_polaridad`) bloquea ese falso acierto y la
+  huella de deduplicación incluye la polaridad, así que ambas tareas no
+  colisionan. Es una comprobación léxica, no comprensión del lenguaje: «evitar
+  X» cuenta como negación, «dejar de no hacer X» no se resuelve.
+- **Umbrales no intercambiables**: `0.15` aquí (firma normalizada + penalización)
+  no equivale al `0.3` de la documentación de integración ni a un coseno de
+  `0.85`.
+- **`ladoCubo`**: el plugin usa `1024` (defecto del *constructor* del núcleo),
+  mientras `ConfigVOS.LADO_CUBO_DEFAULT` vale `32000`. Se mantiene `1024` porque
+  es el valor con el que la firma está verificada; no los mezcles.
+- **Licencia**: todo el repositorio, su documentación (Markdown, ODT, DOCX y
+  PDF) y este plugin usan **LAMC PEPIUOX v1.0 / LULA v1.1**, una licencia de
+  uso libre con atribución. Ninguna otra licencia aplica a VectorW.
+
 
 `verificar_montaje.mjs` reproduce el arranque del loader: resuelve el
 especificador desde el directorio del perfil, importa el módulo (con lo que se

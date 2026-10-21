@@ -1,0 +1,34 @@
+# Bundle patch del plugin VectorW.
+#
+# Inserta la fila que monta el plugin en el perfil. Al ser un bundle, este patch
+# se aplica como una CAPA de primera clase del perfil (igual que los bundles
+# oficiales), en lugar de escribirse a mano en cordis.patch.yml del usuario.
+#
+# `name` apunta al propio paquete: el bundle y el plugin son el mismo paquete,
+# el mismo patrón que usa `dsh-plugin`.
+#
+# VectorW — núcleo original de Jose Ricardo Mantilla Mantilla (PePiuoX)
+# https://github.com/PePiuoX · Licencia LAMC v1.0 / LULA v1.1
+- insert:
+    - id: vectorw-memory
+      name: '@deepseek-ai/dsh-plugin-vectorw'
+      config:
+        # Vacío = usa el núcleo vendorizado en vendor/vectorW_py, de modo que el
+        # plugin funciona sin una instalación aparte de VectorW.
+        rutaCore: ''
+        umbralSimilitud: 0.15
+        maxEntradas: 2000
+        ordenMarkov: 2
+        # Memoria de procesos/lecciones/recursos y presupuesto de tokens.
+        # Vacío = <paquete>/memoria/vectorw_memoria.db
+        rutaMemoria: ''
+        rutaSkills: ''
+        rutaDocumentos: ''
+        umbralProcesos: 0.22
+        minTokensProcesos: 3
+        umbralRecursos: 0.35
+        presupuestoCaracteres: 6000
+        maxTokensRespuesta: 1500
+        usarIndiceEspacios: true
+        reentrenarAlRestaurar: true
+        persistirAlCerrar: false

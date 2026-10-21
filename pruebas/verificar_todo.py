@@ -52,6 +52,7 @@ def ejecutar(titulo: str, comando: list) -> tuple:
 def main() -> int:
     pasos = [
         ("Referencia vs nucleo original", [sys.executable, os.path.join("pruebas", "verificar_equivalencia.py")]),
+        ("Memoria SQLite y puente 1.4", [sys.executable, os.path.join("pruebas", "verificar_memoria.py")]),
         ("Port TypeScript", ["node", os.path.join("implementaciones", "typescript", "prueba.ts")]),
         ("Port JavaScript", ["node", os.path.join("implementaciones", "javascript", "prueba.mjs")]),
     ]
@@ -122,6 +123,7 @@ def main() -> int:
     for ruta, etiqueta in (
         (os.path.join("vendor", "vectorW_py", "vectorW_6.py"), "Nucleo vendorizado"),
         (os.path.join("bridge_vos.py"), "Puente del plugin"),
+        (os.path.join("memoria_vectorw.py"), "Memoria SQLite"),
         (os.path.join("lib", "index.js"), "Plugin de DSH"),
     ):
         if os.path.isfile(os.path.join(RAIZ, ruta)):

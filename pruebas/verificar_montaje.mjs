@@ -27,15 +27,18 @@
  */
 
 import { createRequire } from 'node:module'
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { readFileSync, existsSync, rmSync, mkdirSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve, dirname } from 'node:path'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 
 const SOLO_MONTAJE = process.argv.includes('--solo-montaje')
 
 const DSH_HOME = process.env.DSH_HOME ?? 'C:/Users/PePiuoX/.dsh'
 const PERFIL = process.env.DSH_PROFILE ?? 'desktop'
 const DIR_PERFIL = join(DSH_HOME, 'profiles', PERFIL)
+// Raíz del plugin: el directorio padre de pruebas/.
+const RAIZ_PLUGIN = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 let comprobaciones = 0
 let fallos = 0
@@ -63,31 +66,40 @@ console.log(`Perfil: ${DIR_PERFIL}`)
 titulo('1. Estado del perfil')
 // ---------------------------------------------------------------------------
 
-// La fila debe existir y estar bajo `insert:` (si no, el loader la descarta).
-let patch = ''
-try {
-  patch = readFileSync(join(DIR_PERFIL, 'cordis.patch.yml'), 'utf8')
-} catch (error) {
-  afirmar(false, 'cordis.patch.yml legible', String(error))
-  process.exit(1)
-}
-
-const tieneFila = /id:\s*vectorw-memory/.test(patch)
-const bajoInsert = /-\s*insert:[\s\S]*?id:\s*vectorw-memory/.test(patch)
-afirmar(tieneFila, 'La fila vectorw-memory existe en cordis.patch.yml')
+// La fila la aporta el PATCH DEL BUNDLE, no el cordis.patch.yml del usuario.
+// Escribirla a mano en el perfil fue justo lo que impedía habilitar el plugin.
+const patchBundle = readFileSync(join(RAIZ_PLUGIN, 'cordis.patch.yml'), 'utf8')
+const tieneFila = /id:\s*vectorw-memory/.test(patchBundle)
+const bajoInsert = /-\s*insert:[\s\S]*?id:\s*vectorw-memory/.test(patchBundle)
+afirmar(tieneFila, 'El patch del bundle declara la fila vectorw-memory')
 afirmar(
   bajoInsert,
   'La fila esta bajo "insert:" (obligatorio para ANADIR filas)',
   'Sin "insert:" el loader la trata como parche de una fila inexistente y la descarta.',
 )
 
-// El enlace del paquete debe estar en el node_modules del perfil.
-const rutaNodeModules = join(DSH_HOME, 'profiles', 'node_modules')
-let enlaceOk = false
+// El paquete debe estar declarado como bundle del perfil.
+let enBundles = false
 try {
-  enlaceOk = readdirSync(join(rutaNodeModules, '@deepseek-ai')).includes('dsh-plugin-vectorw')
+  const perfilPkg = JSON.parse(readFileSync(join(DIR_PERFIL, 'package.json'), 'utf8'))
+  enBundles = (perfilPkg?.dsh?.profile?.bundles ?? []).includes(
+    '@deepseek-ai/dsh-plugin-vectorw',
+  )
 } catch { /* se reporta abajo */ }
-afirmar(enlaceOk, 'El paquete esta enlazado en profiles/node_modules')
+afirmar(
+  enBundles,
+  'El bundle esta declarado en dsh.profile.bundles del perfil',
+  'Debe instalarlo install_bundle, no escribirse a mano.',
+)
+
+// El enlace del paquete debe estar materializado en el perfil.
+const rutaNodeModules = join(DSH_HOME, 'profiles', 'node_modules')
+const rutasCandidatas = [
+  join(DIR_PERFIL, 'node_modules', '@deepseek-ai', 'dsh-plugin-vectorw'),
+  join(rutaNodeModules, '@deepseek-ai', 'dsh-plugin-vectorw'),
+]
+const rutaEnlace = rutasCandidatas.find((r) => existsSync(r))
+afirmar(!!rutaEnlace, `El paquete esta instalado (${rutaEnlace ?? 'no encontrado'})`)
 
 // ---------------------------------------------------------------------------
 titulo('2. Resolucion como la hace el loader')
@@ -152,9 +164,9 @@ afirmar(Array.isArray(modulo.inject), `inject declarado: ${JSON.stringify(modulo
 afirmar(typeof modulo.apply === 'function', 'apply exportado')
 afirmar(!!modulo.Config, 'Config exportado (esquema de configuracion)')
 
-// Leer la configuracion REAL del perfil, para probar lo que vera el loader.
+// Leer la configuracion REAL de la fila (la declara el patch del bundle).
 function configDelPerfil() {
-  const lineas = patch.split(/\r?\n/)
+  const lineas = patchBundle.split(/\r?\n/)
   const i = lineas.findIndex((l) => /^\s*-\s*id:\s*vectorw-memory\s*$/.test(l))
   const config = {}
   if (i < 0) return config
@@ -172,6 +184,26 @@ function configDelPerfil() {
 }
 
 const config = configDelPerfil()
+// La memoria SQLite de esta prueba no debe contaminar la memoria real del
+// usuario: se usa una base temporal dentro de pruebas/ y se borra al final.
+// En el TEMP del sistema, no en el repo: el puente puede mantener la base
+// abierta hasta que el proceso muere y Windows no permite borrarla en caliente.
+const carpetaMemoriaPrueba = join(tmpdir(), 'vectorw-montaje-prueba')
+// Limpieza de ejecuciones anteriores: aquí ya no hay ningún puente vivo.
+try {
+  rmSync(carpetaMemoriaPrueba, { recursive: true, force: true })
+} catch { /* otro proceso la mantiene abierta */ }
+mkdirSync(carpetaMemoriaPrueba, { recursive: true })
+const rutaMemoriaPrueba = join(carpetaMemoriaPrueba, 'memoria.db')
+config.rutaMemoria = rutaMemoriaPrueba
+// El puente mantiene la base abierta hasta que DSH descarga el plugin, así que
+// el borrado del final puede no ser posible en Windows. Se limpia al ARRANCAR,
+// cuando ya no hay ningún proceso anterior usando esos ficheros.
+for (const sufijo of ['', '-wal', '-shm']) {
+  try {
+    rmSync(`${rutaMemoriaPrueba}${sufijo}`, { force: true })
+  } catch { /* otro proceso aún la tiene abierta */ }
+}
 console.log(`  config del perfil: ${JSON.stringify(config)}`)
 
 // El loader aplica el plugin con un contexto hijo que ve el servicio `tools`.
@@ -190,6 +222,9 @@ const esperadas = [
   'vector_stats',
   'vector_persist',
   'vector_purge',
+  'vector_proceso_buscar',
+  'vector_proceso_guardar',
+  'vector_recurso_buscar',
 ]
 const registradas = contexto.__registradas
 afirmar(
@@ -263,6 +298,55 @@ try {
   })
   afirmar(ajeno.valor.hit === false, 'vector_cache_check -> MISS en tema distinto (sin falso acierto)')
 
+  // --- memoria de procesos, lecciones y catálogo (SQLite) -----------------
+  const procesoGuardado = await ejecutar('vector_proceso_guardar', {
+    intencion: 'migrar la tabla de pedidos a MySQL 8 con PDO y transacciones',
+    resultado: 'Migracion 004_pedidos creada y verificada con 9/9 pruebas.',
+    pasos: 'leer esquema\ncrear migracion\nejecutar pruebas',
+    referencia: 'migrations/004_pedidos.sql',
+    contexto: 'modulo=pedidos; preset=php-mysql-senior-factory-v2',
+    estado: 'validado',
+    tokens: 2100,
+    leccion: {
+      tipo: 'base-de-datos',
+      causa: 'falta indice en la columna de busqueda',
+      correccion: 'crear indice compuesto (tenant_id, estado)',
+      prevencion: 'revisar el plan de ejecucion antes de desplegar',
+      modulo: 'pedidos',
+    },
+  })
+  afirmar(procesoGuardado.valor.guardado === true,
+    `vector_proceso_guardar guarda en SQLite (id ${procesoGuardado.valor.id})`)
+
+  const procesoHit = await ejecutar('vector_proceso_buscar', {
+    query: 'migrar tabla pedidos MySQL con PDO y transacciones',
+  })
+  afirmar(procesoHit.valor.hit === true,
+    `vector_proceso_buscar -> HIT (${procesoHit.valor.procesos?.length ?? 0} procesos)`,
+    procesoHit.texto)
+  afirmar((procesoHit.valor.lecciones ?? []).length > 0,
+    'vector_proceso_buscar devuelve la leccion asociada')
+
+  const procesoMiss = await ejecutar('vector_proceso_buscar', {
+    query: 'disenar un sistema de facturacion electronica',
+  })
+  afirmar(procesoMiss.valor.hit === false,
+    'vector_proceso_buscar -> MISS en tema distinto')
+
+  const recurso = await ejecutar('vector_recurso_buscar', {
+    query: 'guardar un resultado en la cache semantica',
+    tipo: 'herramienta',
+  })
+  afirmar(recurso.valor.hit === true,
+    `vector_recurso_buscar -> HIT (${recurso.valor.recursos?.[0]?.nombre ?? '—'})`,
+    recurso.texto)
+
+  const statsMemoria = await ejecutar('vector_stats', {})
+  afirmar(/Memoria SQLite: \d+ procesos/.test(statsMemoria.texto),
+    'vector_stats informa de la memoria SQLite')
+  afirmar(/Presupuesto: 6000 car\./.test(statsMemoria.texto),
+    'vector_stats informa del presupuesto de tokens')
+
   // El predictor necesita historial: con una sola entrada no hay transición
   // que aprender. Se comprueba su comportamiento en los dos casos.
   const sinHistorial = await ejecutar('vector_predict', { n: 3 })
@@ -310,6 +394,29 @@ try {
 }
 
 console.log(`\n  (tiempo total de las herramientas: ${Date.now() - inicio} ms)`)
+}
+
+// La base de memoria de la prueba era temporal: no se deja basura en el repo.
+// Descargar el contexto ejecuta el `dispose` del plugin, que cierra el puente
+// Python; sin eso, Windows mantiene los ficheros SQLite bloqueados.
+try {
+  await contexto.dispose()
+} catch { /* el contexto de prueba puede no exponer dispose */ }
+await new Promise((listo) => setTimeout(listo, 600))
+for (const sufijo of ['', '-wal', '-shm']) {
+  let borrado = false
+  for (let intento = 0; intento < 10; intento++) {
+    try {
+      rmSync(`${rutaMemoriaPrueba}${sufijo}`, { force: true })
+      borrado = true
+      break
+    } catch {
+      await new Promise((listo) => setTimeout(listo, 300))
+    }
+  }
+  if (!borrado && process.env.VECTORW_DEBUG) {
+    console.log(`  AVISO no se pudo borrar ${rutaMemoriaPrueba}${sufijo} (proceso aún vivo)`)
+  }
 }
 
 // ---------------------------------------------------------------------------
